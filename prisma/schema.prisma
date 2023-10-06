@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["clientExtensions", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions      = [pgcrypto]
+}
+
+model general_practitioners {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at     DateTime  @default(now()) @db.Timestamp(6)
+  updated_at     DateTime  @default(now()) @db.Timestamp(6)
+  last_name      String    @db.VarChar(255)
+  email          String    @db.VarChar(255)
+  personal_phone String    @db.VarChar(255)
+  office_phone   String    @db.VarChar(255)
+  patient        patient[]
+}
+
+model hospital {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  description String?   @db.VarChar(255)
+  status      Int?      @default(0)
+  name        String    @db.VarChar(255)
+  created_at  DateTime  @default(now()) @db.Timestamp(6)
+  updated_at  DateTime  @default(now()) @db.Timestamp(6)
+  user_id     String    @db.Uuid
+  tenant_id   String    @db.VarChar(255)
+  address     String?   @db.VarChar(255)
+  city        String?   @db.VarChar(255)
+  identifier  String?   @db.VarChar(255)
+  postal_code String?   @db.VarChar(255)
+  country     String?   @db.VarChar(255)
+  language    String?   @db.VarChar(255)
+  user        user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  patient     patient[]
+}
+
+model hpc_decision_makings {
+  id                             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at                     DateTime      @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime      @default(now()) @db.Timestamp(6)
+  hpc_meeting_id                 String?       @db.Uuid
+  life_expectancy_without_cancer String        @db.VarChar(255)
+  life_expectancy_untreated      String        @db.VarChar(255)
+  burden_cancer_untreated        String        @db.VarChar(255)
+  add_life_expectancy            String        @db.VarChar(255)
+  hpc_meetings                   hpc_meetings? @relation(fields: [hpc_meeting_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model hpc_meeting_evaluations {
+  id                           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at                   DateTime      @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime      @default(now()) @db.Timestamp(6)
+  treatment_information        String        @db.VarChar(255)
+  issues_since_last_review     String        @db.VarChar(255)
+  extra_support_needed         String        @db.VarChar(255)
+  treatment_plan_changed       Boolean
+  treatment_plan_changed_how   String        @db.VarChar(255)
+  treatment_plan_changed_other String?       @db.VarChar(255)
+  treatmen_plan_changed_why    String        @db.VarChar(255)
+  how_successfull              String        @db.VarChar(255)
+  any_further_recommandations  String        @db.VarChar(255)
+  hpc_meeting_id               String?       @db.Uuid
+  hpc_meetings                 hpc_meetings? @relation(fields: [hpc_meeting_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model hpc_meeting_members {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  updated_at      DateTime      @default(now()) @db.Timestamp(6)
+  user_id         String?       @db.Uuid
+  hpc_meetings_id String?       @db.Uuid
+  hpc_meetings    hpc_meetings? @relation(fields: [hpc_meetings_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user            user?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model hpc_meetings {
+  id                      String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at              DateTime                  @default(now()) @db.Timestamp(6)
+  updated_at              DateTime                  @default(now()) @db.Timestamp(6)
+  status                  Int
+  meeting_type            Int
+  date                    DateTime                  @db.Timestamp(6)
+  current_step            Int?
+  number                  Int?
+  snapshot_id             String?                   @db.VarChar(255)
+  patient_id              String?                   @db.Uuid
+  hpc_decision_makings    hpc_decision_makings[]
+  hpc_meeting_evaluations hpc_meeting_evaluations[]
+  hpc_meeting_members     hpc_meeting_members[]
+  patient                 patient?                  @relation(fields: [patient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model member_notifications {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at            DateTime  @default(now()) @db.Timestamp(6)
+  updated_at            DateTime  @default(now()) @db.Timestamp(6)
+  notification_type     Int
+  read                  Boolean
+  next_hpc_meeting_date DateTime? @db.Timestamp(6)
+  archived              Boolean   @default(false)
+  patient_id            String?   @db.Uuid
+  member_id             String?   @db.Uuid
+  user                  user?     @relation(fields: [member_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  patient               patient?  @relation(fields: [patient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model new_tablepatient_treatments {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  patient_id String?  @db.Uuid
+  patient    patient? @relation(fields: [patient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model patient {
+  id                                   String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at                           DateTime                      @default(now()) @db.Timestamp(6)
+  updated_at                           DateTime                      @default(now()) @db.Timestamp(6)
+  status                               Int
+  status_date                          DateTime?                     @default(now()) @db.Timestamp(6)
+  status_reason                        String?                       @db.VarChar(255)
+  citizen_service_number               String                        @db.VarChar(255)
+  first_name                           String                        @db.VarChar(255)
+  last_name                            String                        @db.VarChar(255)
+  gender                               Int
+  birth_date                           DateTime                      @db.Timestamp(6)
+  phone_number                         String?                       @db.VarChar(255)
+  email                                String?                       @db.VarChar(255)
+  tour_done                            Boolean
+  treatment_evaluation_done            Boolean
+  active_meeting                       String?                       @db.VarChar(255)
+  next_hpc_meeting                     Int
+  next_hpc_date                        DateTime?                     @db.Timestamp(6)
+  follow_up_status                     Int
+  assessed                             Boolean
+  emergency_office_hour_number         String?                       @db.VarChar(255)
+  emergency_outside_office_hour_number String?                       @db.VarChar(255)
+  living_situation                     String?                       @db.VarChar(255)
+  primary_caregiver                    String?                       @db.VarChar(255)
+  informal_care                        String?                       @db.VarChar(255)
+  formal_care                          String?                       @db.VarChar(255)
+  hospital_id                          String?                       @db.Uuid
+  apn_member_id                        String?                       @db.Uuid
+  general_practitioner_id              String?                       @db.Uuid
+  hpc_meetings                         hpc_meetings[]
+  member_notifications                 member_notifications[]
+  new_tablepatient_treatments          new_tablepatient_treatments[]
+  user                                 user?                         @relation(fields: [apn_member_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  general_practitioners                general_practitioners?        @relation(fields: [general_practitioner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  hospital                             hospital?                     @relation(fields: [hospital_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  patient_substance_use                patient_substance_use[]
+  patient_symptom_report               patient_symptom_report[]
+}
+
+model patient_substance_use {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @db.Timestamp(6)
+  substance_use String   @db.VarChar(255)
+  patient_id    String?  @db.Uuid
+  patient       patient? @relation(fields: [patient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model patient_symptom_report {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at         DateTime @default(now()) @db.Timestamp(6)
+  updated_at         DateTime @default(now()) @db.Timestamp(6)
+  patient_id         String   @db.Uuid
+  mood               Int
+  streak             Int
+  any_severe         Boolean
+  any_other_symptoms Boolean
+  patient            patient  @relation(fields: [patient_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                String                 @unique @db.VarChar(255)
+  firstName            String?                @db.VarChar(255)
+  lastName             String?                @db.VarChar(255)
+  roq_user_id          String                 @db.VarChar(255)
+  tenant_id            String                 @db.VarChar(255)
+  created_at           DateTime               @default(now()) @db.Timestamp(6)
+  updated_at           DateTime               @default(now()) @db.Timestamp(6)
+  hospital             hospital[]
+  hpc_meeting_members  hpc_meeting_members[]
+  member_notifications member_notifications[]
+  patient              patient[]
+}
